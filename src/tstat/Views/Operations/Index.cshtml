@@ -1,0 +1,86 @@
+@model tstat.Models.OperationsPageViewModel
+@{
+    ViewData["Title"] = "Операции по счетам";
+}
+
+<h2>Операции по брокерским счетам</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger">@ViewBag.Error</div>
+}
+
+<form method="post" asp-action="GetOperations">
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label class="form-label">Счет:</label>
+            <select name="accountId" class="form-select" required>
+                <option value="">Выберите счет</option>
+                @foreach (var account in Model.Accounts)
+                {
+                    <option value="@account.Id" selected="@(account.Id == Model.SelectedAccountId)">
+                        @account.Name (@account.Type)
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">С даты:</label>
+            <input type="date" name="fromDate" class="form-control" value="@Model.FromDate.ToString("yyyy-MM-dd")" required />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">По дату:</label>
+            <input type="date" name="toDate" class="form-control" value="@Model.ToDate.ToString("yyyy-MM-dd")" required />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button type="submit" class="btn btn-primary d-block">Получить операции</button>
+        </div>
+    </div>
+</form>
+
+@if (Model.Operations.Any())
+{
+    <div class="mt-4">
+        <h4>Найдено операций: @Model.Operations.Count</h4>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Тип операции</th>
+                        <th>Инструмент</th>
+                        <th>Количество</th>
+                        <th>Цена</th>
+                        <th>Сумма</th>
+                        <th>Валюта</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var operation in Model.Operations)
+                    {
+                        <tr>
+                            <td>@operation.Date.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>@operation.Type</td>
+                            <td>@operation.InstrumentName</td>
+                            <td>@operation.Quantity</td>
+                            <td>@operation.Price.ToString("F2")</td>
+                            <td class="@(operation.Amount >= 0 ? "text-success" : "text-danger")">
+                                @operation.Amount.ToString("F2")
+                            </td>
+                            <td>@operation.Currency</td>
+                            <td>@operation.Status</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else if (!string.IsNullOrEmpty(Model.SelectedAccountId))
+{
+    <div class="alert alert-info mt-4">
+        Операции не найдены за указанный период.
+    </div>
+}

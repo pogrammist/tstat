@@ -1,0 +1,74 @@
+using Microsoft.AspNetCore.Mvc;
+using tstat.Models;
+using tstat.Services;
+
+namespace tstat.Controllers;
+
+public class OperationsController : Controller
+{
+    private readonly IConfiguration _configuration;
+
+    public OperationsController(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+
+    public async Task<IActionResult> Index()
+    {
+        var model = new OperationsPageViewModel();
+        
+        var token = _configuration["TinkoffToken"];
+        if (string.IsNullOrEmpty(token))
+        {
+            ViewBag.Error = "Токен Тинькофф не настроен";
+            return View(model);
+        }
+
+        try
+        {
+            var service = new TinkoffService(token);
+            model.Accounts = await service.GetAccountsAsync();
+        }
+        catch (Exception ex)
+        {
+            ViewBag.Error = ex.Message;
+        }
+
+        return View(model);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> GetOperations(string accountId, DateTime fromDate, DateTime toDate)
+    {
+        var model = new OperationsPageViewModel
+        {
+            SelectedAccountId = accountId,
+            FromDate = fromDate,
+            ToDate = toDate
+        };
+
+        var token = _configuration["TinkoffToken"];
+        if (string.IsNullOrEmpty(token))
+        {
+            ViewBag.Error = "Токен Тинькофф не настроен";
+            return View("Index", model);
+        }
+
+        try
+        {
+            var service = new TinkoffService(token);
+            model.Accounts = await service.GetAccountsAsync();
+            
+            if (!string.IsNullOrEmpty(accountId))
+            {
+                model.Operations = await service.GetOperationsAsync(accountId, fromDate, toDate);
+            }
+        }
+        catch (Exception ex)
+        {
+            ViewBag.Error = ex.Message;
+        }
+
+        return View("Index", model);
+    }
+}

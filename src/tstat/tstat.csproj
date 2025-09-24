@@ -6,4 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Tinkoff.InvestApi" Version="0.6.17" />
+  </ItemGroup>
+
 </Project>
