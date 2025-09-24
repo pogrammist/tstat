@@ -42,19 +42,19 @@
 @if (Model.Operations.Any())
 {
     <div class="mt-4">
-        <h4>Найдено операций: @Model.Operations.Count</h4>
+        <h4>Найдено операций: <span id="operationsCount">@Model.Operations.Count</span> | Общая сумма: <span id="totalSum">@Model.Operations.Sum(x => x.Amount).ToString("F2")</span></h4>
         <div class="table-responsive">
-            <table class="table table-striped">
+            <table class="table table-striped" id="operationsTable">
                 <thead>
                     <tr>
                         <th>Дата</th>
-                        <th>Тип операции</th>
-                        <th>Инструмент</th>
+                        <th>Тип операции <button class="filter-btn" data-column="1">▼</button></th>
+                        <th>Инструмент <button class="filter-btn" data-column="2">▼</button></th>
                         <th>Количество</th>
                         <th>Цена</th>
                         <th>Сумма</th>
-                        <th>Валюта</th>
-                        <th>Статус</th>
+                        <th>Валюта <button class="filter-btn" data-column="6">▼</button></th>
+                        <th>Статус <button class="filter-btn" data-column="7">▼</button></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -77,6 +77,152 @@
             </table>
         </div>
     </div>
+
+    <!-- Filter Dropdown Modal -->
+    <div id="filterModal" class="filter-modal">
+        <div class="filter-content">
+            <div class="filter-header">
+                <span id="filterTitle">Фильтр</span>
+                <span class="filter-close">&times;</span>
+            </div>
+            <div class="filter-search">
+                <input type="text" id="filterSearch" placeholder="Поиск..." class="form-control form-control-sm">
+            </div>
+            <div class="filter-options">
+                <div class="filter-option">
+                    <input type="checkbox" id="selectAll" checked>
+                    <label for="selectAll">(Выбрать все)</label>
+                </div>
+                <div id="filterList"></div>
+            </div>
+            <div class="filter-buttons">
+                <button class="btn btn-sm btn-secondary" id="clearFilter">Очистить</button>
+                <button class="btn btn-sm btn-primary" id="applyFilter">Применить</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const table = document.getElementById('operationsTable');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const operationsCount = document.getElementById('operationsCount');
+        const modal = document.getElementById('filterModal');
+        const filterTitle = document.getElementById('filterTitle');
+        const filterSearch = document.getElementById('filterSearch');
+        const filterList = document.getElementById('filterList');
+        const selectAll = document.getElementById('selectAll');
+        const clearFilter = document.getElementById('clearFilter');
+        const applyFilter = document.getElementById('applyFilter');
+        const closeModal = document.querySelector('.filter-close');
+        
+        let currentColumn = null;
+        let activeFilters = {};
+
+        // Open filter modal
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                currentColumn = parseInt(this.dataset.column);
+                const columnName = this.parentElement.textContent.replace('▼', '').trim();
+                filterTitle.textContent = `Фильтр: ${columnName}`;
+                
+                // Get unique values for this column
+                const uniqueValues = [...new Set(rows.map(row => row.cells[currentColumn].textContent.trim()))]
+                    .filter(val => val !== '')
+                    .sort();
+                
+                // Populate filter list
+                filterList.innerHTML = '';
+                uniqueValues.forEach(value => {
+                    const div = document.createElement('div');
+                    div.className = 'filter-option';
+                    const isChecked = !activeFilters[currentColumn] || activeFilters[currentColumn].includes(value);
+                    div.innerHTML = `
+                        <input type="checkbox" id="filter_${value}" ${isChecked ? 'checked' : ''}>
+                        <label for="filter_${value}">${value}</label>
+                    `;
+                    filterList.appendChild(div);
+                });
+                
+                modal.style.display = 'block';
+            });
+        });
+
+        // Filter search
+        filterSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const options = filterList.querySelectorAll('.filter-option');
+            options.forEach(option => {
+                const label = option.querySelector('label').textContent.toLowerCase();
+                option.style.display = label.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
+
+        // Select all toggle
+        selectAll.addEventListener('change', function() {
+            const checkboxes = filterList.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+
+        // Apply filter
+        applyFilter.addEventListener('click', function() {
+            const checkedValues = Array.from(filterList.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.nextElementSibling.textContent);
+            
+            if (checkedValues.length === 0) {
+                delete activeFilters[currentColumn];
+            } else {
+                activeFilters[currentColumn] = checkedValues;
+            }
+            
+            applyAllFilters();
+            modal.style.display = 'none';
+        });
+
+        // Clear filter
+        clearFilter.addEventListener('click', function() {
+            delete activeFilters[currentColumn];
+            applyAllFilters();
+            modal.style.display = 'none';
+        });
+
+        // Close modal
+        closeModal.addEventListener('click', () => modal.style.display = 'none');
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+
+        // Apply all active filters
+        function applyAllFilters() {
+            let visibleCount = 0;
+            let totalSum = 0;
+            rows.forEach(row => {
+                let shouldShow = true;
+                
+                for (const [column, values] of Object.entries(activeFilters)) {
+                    const cellText = row.cells[parseInt(column)].textContent.trim();
+                    if (!values.includes(cellText)) {
+                        shouldShow = false;
+                        break;
+                    }
+                }
+                
+                row.style.display = shouldShow ? '' : 'none';
+                if (shouldShow) {
+                    visibleCount++;
+                    const amountText = row.cells[5].textContent.trim();
+                    totalSum += parseFloat(amountText) || 0;
+                }
+            });
+            
+            operationsCount.textContent = visibleCount;
+            document.getElementById('totalSum').textContent = totalSum.toFixed(2);
+        }
+    });
+    </script>
 }
 else if (!string.IsNullOrEmpty(Model.SelectedAccountId))
 {
@@ -84,3 +230,112 @@ else if (!string.IsNullOrEmpty(Model.SelectedAccountId))
         Операции не найдены за указанный период.
     </div>
 }
+
+<style>
+.filterable {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+
+.filter-btn {
+    float: right;
+    font-size: 12px;
+    color: #666;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 2px;
+    margin-left: 5px;
+}
+
+.filter-btn:hover {
+    background-color: #e9ecef;
+}
+
+.filter-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.filter-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    border: 1px solid #888;
+    border-radius: 4px;
+    width: 300px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.filter-header {
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+}
+
+.filter-close {
+    color: #aaa;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.filter-close:hover {
+    color: black;
+}
+
+.filter-search {
+    padding: 10px 15px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.filter-options {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 5px 0;
+}
+
+.filter-option {
+    padding: 5px 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-option:hover {
+    background-color: #f8f9fa;
+}
+
+.filter-option input[type="checkbox"] {
+    margin: 0;
+}
+
+.filter-option label {
+    margin: 0;
+    cursor: pointer;
+    flex: 1;
+}
+
+.filter-buttons {
+    padding: 10px 15px;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.filter-buttons button {
+    flex: 1;
+}
+</style>
