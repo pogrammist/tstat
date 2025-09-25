@@ -62,7 +62,8 @@ public class PositionsController : Controller
             if (!string.IsNullOrEmpty(accountId))
             {
                 var operations = await service.GetOperationsAsync(accountId, fromDate, toDate);
-                model.Positions = CalculatePositions(operations);
+                var instrumentService = new InstrumentService(token);
+                model.Positions = await CalculatePositionsAsync(operations, instrumentService);
             }
         }
         catch (Exception ex)
@@ -73,7 +74,7 @@ public class PositionsController : Controller
         return View("Index", model);
     }
 
-    private List<PositionViewModel> CalculatePositions(List<OperationViewModel> operations)
+    private async Task<List<PositionViewModel>> CalculatePositionsAsync(List<OperationViewModel> operations, InstrumentService instrumentService)
     {
         var positions = new Dictionary<string, PositionViewModel>();
 
@@ -92,6 +93,7 @@ public class PositionsController : Controller
                 {
                     Figi = op.Figi,
                     InstrumentName = op.InstrumentName ?? op.Figi,
+                    Ticker = await instrumentService.GetTickerByFigi(op.Figi),
                     InstrumentType = op.Type.Contains("Buy") || op.Type.Contains("Sell") ? "Stock" : "Future",
                     Currency = op.Currency
                 };

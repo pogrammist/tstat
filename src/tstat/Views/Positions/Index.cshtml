@@ -79,6 +79,7 @@
             <table class="table table-striped">
                 <thead>
                     <tr>
+                        <th>Тикер</th>
                         <th>Инструмент</th>
                         <th>Тип</th>
                         <th>Открытая позиция</th>
@@ -95,6 +96,7 @@
                     @foreach (var position in Model.Positions)
                     {
                         <tr>
+                            <td><strong>@position.Ticker</strong></td>
                             <td>@position.InstrumentName</td>
                             <td>@position.InstrumentType</td>
                             <td class="@(position.OpenQuantity > 0 ? "text-success" : position.OpenQuantity < 0 ? "text-danger" : "")">
@@ -119,7 +121,7 @@
                             </td>
                         </tr>
                         <tr id="trades_@position.Figi" style="display: none;">
-                            <td colspan="10">
+                            <td colspan="11">
                                 <div class="p-3 bg-light">
                                     <h6>История сделок:</h6>
                                     <table class="table table-sm">

@@ -4,6 +4,7 @@ public class PositionViewModel
 {
     public string Figi { get; set; } = string.Empty;
     public string InstrumentName { get; set; } = string.Empty;
+    public string Ticker { get; set; } = string.Empty;
     public string InstrumentType { get; set; } = string.Empty;
     public int OpenQuantity { get; set; }
     public decimal AveragePrice { get; set; }
