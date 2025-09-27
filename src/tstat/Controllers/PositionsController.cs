@@ -87,7 +87,7 @@ public class PositionsController : Controller
 
         foreach (var op in validOperations)
         {
-            if (!positions.ContainsKey(op.Figi))
+            if (!string.IsNullOrEmpty(op.Figi) && !positions.ContainsKey(op.Figi))
             {
                 positions[op.Figi] = new PositionViewModel
                 {

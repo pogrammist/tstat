@@ -1,8 +1,180 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model tstat.Models.OperationsPageViewModel
+@{
+    ViewData["Title"] = "Статистика операций";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<h2>Статистика операций и анализ прибыльности</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger">@ViewBag.Error</div>
+}
+
+<form method="post" asp-action="GetOperations">
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <label class="form-label">Счет:</label>
+            <select name="accountId" class="form-select" required>
+                @foreach (var account in Model.Accounts)
+                {
+                    <option value="@account.Id" selected="@(account.Id == Model.SelectedAccountId)">
+                        @account.Name (@account.Type)
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">С даты:</label>
+            <input type="date" name="fromDate" class="form-control" value="@Model.FromDate.ToString("yyyy-MM-dd")" required />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">По дату:</label>
+            <input type="date" name="toDate" class="form-control" value="@Model.ToDate.ToString("yyyy-MM-dd")" required />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button type="submit" class="btn btn-primary d-block">Обновить</button>
+        </div>
+    </div>
+</form>
+
+@if (Model.Operations.Any())
+{
+    var buyOperations = Model.Operations.Where(o => o.Type.Contains("Buy")).ToList();
+    var sellOperations = Model.Operations.Where(o => o.Type.Contains("Sell")).ToList();
+    var totalBuyAmount = buyOperations.Sum(o => Math.Abs(o.Amount));
+    var totalSellAmount = sellOperations.Sum(o => Math.Abs(o.Amount));
+    var totalProfit = totalSellAmount - totalBuyAmount;
+    var profitPercent = totalBuyAmount > 0 ? (totalProfit / totalBuyAmount) * 100 : 0;
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Всего операций</h5>
+                    <h3 class="text-primary">@Model.Operations.Count</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Покупки</h5>
+                    <h3 class="text-danger">@totalBuyAmount.ToString("F2")</h3>
+                    <small class="text-muted">@buyOperations.Count операций</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Продажи</h5>
+                    <h3 class="text-success">@totalSellAmount.ToString("F2")</h3>
+                    <small class="text-muted">@sellOperations.Count операций</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Прибыль/Убыток</h5>
+                    <h3 class="@(totalProfit >= 0 ? "text-success" : "text-danger")">@totalProfit.ToString("F2")</h3>
+                    <small class="@(profitPercent >= 0 ? "text-success" : "text-danger")">@profitPercent.ToString("F1")%</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Последние операции</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Дата</th>
+                                    <th>Тип</th>
+                                    <th>Инструмент</th>
+                                    <th>Сумма</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var operation in Model.Operations.Take(10))
+                                {
+                                    <tr>
+                                        <td>@operation.Date.ToString("dd.MM.yy")</td>
+                                        <td><span class="badge @(operation.Type.Contains("Buy") ? "bg-danger" : "bg-success")">@operation.Type</span></td>
+                                        <td>@(operation.InstrumentName ?? "N/A")</td>
+                                        <td class="@(operation.Amount >= 0 ? "text-success" : "text-danger")">
+                                            @operation.Amount.ToString("F2")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-2">
+                        <a href="@Url.Action("Index", "Operations")" class="btn btn-outline-primary btn-sm">Все операции</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Статистика по типам операций</h5>
+                </div>
+                <div class="card-body">
+                    @{
+                        var operationTypes = Model.Operations.GroupBy(o => o.Type)
+                            .Select(g => new { Type = g.Key, Count = g.Count(), Amount = g.Sum(o => o.Amount) })
+                            .OrderByDescending(x => x.Count)
+                            .Take(8);
+                    }
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Тип операции</th>
+                                    <th>Количество</th>
+                                    <th>Сумма</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var type in operationTypes)
+                                {
+                                    <tr>
+                                        <td>@type.Type</td>
+                                        <td>@type.Count</td>
+                                        <td class="@(type.Amount >= 0 ? "text-success" : "text-danger")">
+                                            @type.Amount.ToString("F2")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-2">
+                        <a href="@Url.Action("Index", "Positions")" class="btn btn-outline-primary btn-sm">Анализ позиций</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else if (Model.Accounts.Any())
+{
+    <div class="alert alert-info mt-4">
+        Операции не найдены за указанный период.
+    </div>
+}
+else if (string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-warning mt-4">
+        Загрузка данных...
+    </div>
+}
