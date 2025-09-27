@@ -31,7 +31,7 @@ public class PositionsPageViewModel
     public List<AccountViewModel> Accounts { get; set; } = new();
     public List<PositionViewModel> Positions { get; set; } = new();
     public string? SelectedAccountId { get; set; }
-    public DateTime FromDate { get; set; } = DateTime.Today.AddDays(-30);
+    public DateTime FromDate { get; set; } = DateTime.Today.AddYears(-10);
     public DateTime ToDate { get; set; } = DateTime.Today;
     public decimal TotalRealizedPnL => Positions.Sum(p => p.RealizedPnL);
     public decimal TotalUnrealizedPnL => Positions.Sum(p => p.UnrealizedPnL);

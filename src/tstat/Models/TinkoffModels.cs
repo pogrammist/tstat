@@ -28,6 +28,6 @@ public class OperationsPageViewModel
     public List<AccountViewModel> Accounts { get; set; } = new();
     public List<OperationViewModel> Operations { get; set; } = new();
     public string? SelectedAccountId { get; set; }
-    public DateTime FromDate { get; set; } = DateTime.Today.AddDays(-30);
+    public DateTime FromDate { get; set; } = DateTime.Today.AddYears(-10);
     public DateTime ToDate { get; set; } = DateTime.Today;
 }

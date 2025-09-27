@@ -15,10 +15,9 @@
         <div class="col-md-4">
             <label class="form-label">Счет:</label>
             <select name="accountId" class="form-select" required>
-                <option value="">Выберите счет</option>
                 @foreach (var account in Model.Accounts)
                 {
-                    <option value="@account.Id" selected="@(account.Id == Model.SelectedAccountId)">
+                    <option value="@account.Id" selected="@(account.Id == Model.SelectedAccountId || (string.IsNullOrEmpty(Model.SelectedAccountId) && account == Model.Accounts.First()))">
                         @account.Name (@account.Type)
                     </option>
                 }

@@ -28,6 +28,15 @@ public class OperationsController : Controller
         {
             var service = new TinkoffService(token);
             model.Accounts = await service.GetAccountsAsync();
+            
+            if (model.Accounts.Any())
+            {
+                var firstAccount = model.Accounts.First();
+                model.SelectedAccountId = firstAccount.Id;
+                model.FromDate = DateTime.Today.AddYears(-10);
+                model.ToDate = DateTime.Today;
+                model.Operations = await service.GetOperationsAsync(firstAccount.Id, model.FromDate, model.ToDate);
+            }
         }
         catch (Exception ex)
         {

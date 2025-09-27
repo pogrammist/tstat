@@ -28,6 +28,17 @@ public class PositionsController : Controller
         {
             var service = new TinkoffService(token);
             model.Accounts = await service.GetAccountsAsync();
+            
+            if (model.Accounts.Any())
+            {
+                var firstAccount = model.Accounts.First();
+                model.SelectedAccountId = firstAccount.Id;
+                model.FromDate = DateTime.Today.AddYears(-10);
+                model.ToDate = DateTime.Today;
+                var operations = await service.GetOperationsAsync(firstAccount.Id, model.FromDate, model.ToDate);
+                var instrumentService = new InstrumentService(token);
+                model.Positions = await CalculatePositionsAsync(operations, instrumentService);
+            }
         }
         catch (Exception ex)
         {
@@ -74,7 +85,7 @@ public class PositionsController : Controller
         return View("Index", model);
     }
 
-    private async Task<List<PositionViewModel>> CalculatePositionsAsync(List<OperationViewModel> operations, InstrumentService instrumentService)
+    private Task<List<PositionViewModel>> CalculatePositionsAsync(List<OperationViewModel> operations, InstrumentService instrumentService)
     {
         var positions = new Dictionary<string, PositionViewModel>();
 
@@ -93,12 +104,13 @@ public class PositionsController : Controller
                 {
                     Figi = op.Figi,
                     InstrumentName = op.InstrumentName ?? op.Figi,
-                    Ticker = await instrumentService.GetTickerByFigi(op.Figi),
+                    Ticker = op.Figi,
                     InstrumentType = op.Type.Contains("Buy") || op.Type.Contains("Sell") ? "Stock" : "Future",
                     Currency = op.Currency
                 };
             }
 
+            if (string.IsNullOrEmpty(op.Figi)) continue;
             var position = positions[op.Figi];
             var trade = new TradeViewModel
             {
@@ -146,6 +158,6 @@ public class PositionsController : Controller
             position.LastTradeDate = op.Date;
         }
 
-        return positions.Values.Where(p => p.Trades.Any()).OrderByDescending(p => p.LastTradeDate).ToList();
+        return Task.FromResult(positions.Values.Where(p => p.Trades.Any()).OrderByDescending(p => p.LastTradeDate).ToList());
     }
 }
