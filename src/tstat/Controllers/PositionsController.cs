@@ -89,11 +89,12 @@ public class PositionsController : Controller
     {
         var positions = new Dictionary<string, PositionViewModel>();
 
-        // Фильтруем операции с торговыми инструментами
+        // Фильтруем операции с торговыми инструментами и сортируем по дате
         var validOperations = operations.Where(o => 
             !string.IsNullOrEmpty(o.Figi) && 
             o.Quantity != 0 && 
             (o.Type.Contains("Buy") || o.Type.Contains("Sell")))
+            .OrderBy(o => o.Date)
             .ToList();
 
         foreach (var op in validOperations)
@@ -156,11 +157,26 @@ public class PositionsController : Controller
                     }
                     
                     position.RealizedPnL += pnl;
-                    position.OpenQuantity += quantity;
                     
-                    if (position.OpenQuantity == 0)
+                    // Обновляем открытую позицию
+                    var newQuantity = position.OpenQuantity + quantity;
+                    
+                    if (Math.Abs(newQuantity) < Math.Abs(position.OpenQuantity))
                     {
+                        // Частичное закрытие - средняя цена остается той же
+                        position.OpenQuantity = newQuantity;
+                    }
+                    else if (newQuantity == 0)
+                    {
+                        // Полное закрытие
+                        position.OpenQuantity = 0;
                         position.AveragePrice = 0;
+                    }
+                    else
+                    {
+                        // Переворот позиции - новая средняя цена
+                        position.OpenQuantity = newQuantity;
+                        position.AveragePrice = Math.Abs(op.Price);
                     }
                 }
             }
