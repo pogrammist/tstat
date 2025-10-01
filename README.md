@@ -5,6 +5,7 @@
 ## Настройка
 
 1. Установите зависимости:
+
 ```bash
 dotnet restore
 ```
@@ -12,8 +13,16 @@ dotnet restore
 2. Получите токен API в личном кабинете Тинькофф Инвестиций
 
 3. Добавьте токен в `appsettings.json`:
+
 ```json
 {
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
   "TinkoffToken": "ваш_токен_здесь"
 }
 ```
