@@ -142,8 +142,18 @@ public class PositionsController : Controller
                 {
                     // Закрытие/уменьшение позиции
                     var closedQuantity = Math.Min(Math.Abs(quantity), Math.Abs(position.OpenQuantity));
-                    var pnl = closedQuantity * (Math.Abs(op.Price) - position.AveragePrice) * 
-                             (position.OpenQuantity > 0 ? 1 : -1) * (quantity > 0 ? 1 : -1);
+                    
+                    decimal pnl;
+                    if (position.OpenQuantity > 0)
+                    {
+                        // Закрытие длинной позиции (продажа)
+                        pnl = closedQuantity * (op.Price - position.AveragePrice);
+                    }
+                    else
+                    {
+                        // Закрытие короткой позиции (покупка)
+                        pnl = closedQuantity * (position.AveragePrice - op.Price);
+                    }
                     
                     position.RealizedPnL += pnl;
                     position.OpenQuantity += quantity;
